@@ -2,11 +2,13 @@
     <div class="all-container">
       <div class="container">
         <h1 class="h1_title">杨赛-vue图库练习</h1>
-        <!-- 功能按钮 By-yangsai-->
+        <!--=S 功能按钮 By-yangsai-->
         <div class="btn_bar clearfix">
           <input type="button" value="按创建时间排序" @click="sortTime" :class="{'current':!orderClassFlag && sortFlag}" />
           <input type="button" value="按分类排序" @click="sortTagName" :class="{'current':orderClassFlag}" />
+          <p v-if="orderClassFlag">可手动拖拽图片改变分类或顺序</p>
         </div>
+        <!--=E 功能按钮 By-yangsai-->
         <div class="content">
           <div class="img_list" v-if="!orderClassFlag">
             <ul class="clearfix">
@@ -25,9 +27,14 @@
 
         <!--=S 按分类排序-->
          <div class="classify_list img_list" v-if="orderClassFlag">
-           <div class="class_box" v-for="(classItem,index1) in classifyList">
+           <div class="class_box" v-for="(classItem,index1) in classifyList" >
              <h4>{{classItem.tagName}}</h4>
-             <ul class="clearfix">
+             <ul class="clearfix" :tagId="classItem.tagId" :tagName="classItem.tagName">
+               <draggable
+                 :list="classItem.list"
+                 :group="{ name: 'row' }"
+                 @add="dealAddData"
+               >
                <li v-for="(listItem,index2) in classItem.list">
                  <div class="img_info">
                    <div class="img_box">
@@ -38,6 +45,7 @@
                    <p>{{listItem.createDate | tranferDate}}</p>
                  </div>
                </li>
+               </draggable>
              </ul>
            </div>
          </div>
@@ -49,11 +57,15 @@
 </template>
 
 <script>
-//  import draggable from 'vuedraggable'
+  import draggable from 'vuedraggable'
   export default {
     name: 'imgShow',
+    components:{
+      draggable
+    },
     data () {
       return {
+        randNum: 1,
         orderClassFlag:false,
         sortFlag:false,
         classifyList:[],
@@ -105,6 +117,9 @@
           }
       }
     },
+    watch:{
+
+    },
     methods:{
       sortTagName(){
           // 分类排序，处理数组为：[{tagId:"",tagName:"",list:[],}...]
@@ -150,29 +165,20 @@
         this.orderClassFlag = false;
         this.sortFlag = true;
         },
-      move(e){
-        let odiv = e.target;        //获取目标元素
-
-        //算出鼠标相对元素的位置
-        let disX = e.clientX - odiv.offsetLeft;
-        let disY = e.clientY - odiv.offsetTop;
-        document.onmousemove = (e)=>{       //鼠标按下并移动的事件
-          //用鼠标的位置减去鼠标相对元素的位置，得到元素的位置
-          let left = e.clientX - disX;
-          let top = e.clientY - disY;
-
-          //绑定元素位置到positionX和positionY上面
-//          this.positionX = top;
-//          this.positionY = left;
-
-          //移动当前元素
-          odiv.style.left = left + 'px';
-          odiv.style.top = top + 'px';
-        };
-        document.onmouseup = (e) => {
-          document.onmousemove = null;
-          document.onmouseup = null;
-        };
+      dealAddData(obj){
+        // 添加数据后改变新增数据的分类ID和分类名称
+        let newIndex = obj.newIndex;
+        let ulNode = obj.to.parentNode;
+        let tagId = ulNode.getAttribute('tagId');
+        let tagName = ulNode.getAttribute('tagName');
+        let classifyList = this.classifyList;
+        for(let i = 0; i < classifyList.length;i++){
+            if(classifyList[i].tagId == tagId){
+              classifyList[i].list[newIndex]['tagId'] = tagId;
+              classifyList[i].list[newIndex]['tagName'] = tagName;
+              break;
+            }
+        }
       }
     }
   }
@@ -258,6 +264,7 @@
     height:164px;
     margin-bottom:20px;
     background:url('../assets/no_images.jpg') no-repeat center center;
+    background-size:100%;
   }
   .img_info:hover img{
     transform: scale(1.15);
@@ -292,7 +299,8 @@
   }
   .btn_bar{
     text-align: right;
-    margin-bottom: 10px;
+    padding-bottom: 30px;
+    position: relative;
   }
   .btn_bar input{
     display:inline-block;
@@ -310,5 +318,13 @@
   .btn_bar input:hover,.btn_bar input.current{
     background:#fd23a9;
     color:#fff;
+  }
+  .btn_bar p{
+    font-size:16px;
+    text-align: right;
+    position: absolute;
+    bottom:-15px;
+    right:20px;
+    color:#777;
   }
 </style>
